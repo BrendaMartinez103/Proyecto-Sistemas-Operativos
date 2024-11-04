@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-void main(int argc,char *argv[]){
+int main(int argc,char *argv[]){
     struct stat file;
     mode_t nuevoPermiso;
     int param=0;
@@ -52,7 +52,7 @@ void main(int argc,char *argv[]){
         return 1;
     }else
     printf("permiso correctamente modificado");
-
+return 0;
 }
 
 

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <string.h>
+#include <sys/stat.h>
 
 void main(int argc, char *argv[]){
 	char dir[100];
