@@ -1,15 +1,12 @@
-#include <stdlib.h>
+
 #include <stdio.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <string.h>
 
 #define MAXIMO 500
 
 void main(int argc, char *argv[]){
 	char dir[100];
-if(argv[1]==NULL)
+    if(argv[1]==NULL)
         printf("Falta un introducir un parametro. \n");
     else {
 

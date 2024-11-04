@@ -1,9 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <string.h>
 
 
 void main(int argc, char *argv[]){
