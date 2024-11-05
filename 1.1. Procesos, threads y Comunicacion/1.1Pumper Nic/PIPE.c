@@ -143,12 +143,11 @@ void recibirPedido(){
     pedido Pedido;
     int respuesta;
 
-    int flags = fcntl(pipe_clienteVIP[0], F_GETFL, 0);
+    int flags = fcntl(pipe_clienteVIP[0], F_GETFL, 0);//configuran el extremo de lectura del pipe para que sea no bloqueante,
     fcntl(pipe_clienteVIP[0], F_SETFL, flags | O_NONBLOCK);
 
     while(1){
         read(pipe_cola[0],&respuesta,sizeof(int));
-        
         if(read(pipe_clienteVIP[0],&Pedido,sizeof(pedido))!=-1){
             printf("Atiendo cliente VIP \n");
              switch (Pedido.tipo) {
@@ -201,11 +200,11 @@ void cliente(int id){
     close(pipe_orden_vegano[1]);
     
     srand(time(NULL) + getpid());
-    int despacho;
-    int r = 1;
-    int irse=2;
+    int despacho;//para almacenar la confirmación de que el pedido fue recibido.
+    int r = 1; //se usa para indicar que el cliente está en la cola 
+    int irse=2; //para que usuarios que se quieran ir.
     
-    while(irse!=1){
+    while(1){
         sleep(1);
         int irse = rand() % 10 + 1;
         if (irse == 1) {
@@ -235,7 +234,7 @@ void cliente(int id){
 }
 
 int main(int argc, char **argv){
-
+//crea pipes
     if(pipe(pipe_clienteCOMUN)==-1) return 1;
     if(pipe(pipe_entrega_hamburguesa)==-1) return 1;
     if(pipe(pipe_entrega_papas)==-1) return 1;
@@ -246,7 +245,7 @@ int main(int argc, char **argv){
     if(pipe(pipe_clienteVIP)==-1) return 1;
     if(pipe(pipe_cola)==-1) return 1;
     
-   
+   //procesos hijos de los empleado
     if(fork()==0)
 	    EmpleadoHambuguesa();
 	else if(fork()==0)
@@ -257,17 +256,16 @@ int main(int argc, char **argv){
 	    EmpleadoPapa();
 	else if(fork()==0)
 	    recibirPedido();
-    
-  
+  //procesos hijos de los clientes
     for(int i = 0; i<CANT_CLIENTES; i++){
 	if(fork()==0)
 	    cliente(i+1);
     }
-
+//esperar a que cada proceso cliente termine 
     for(int i = 0; i<CANT_CLIENTES; i++)
 	    wait(NULL);
     
-   
+//esperar a que cada proceso empleado termine    
     for(int i = 0; i<5; i++)
 	    wait(NULL);
     
