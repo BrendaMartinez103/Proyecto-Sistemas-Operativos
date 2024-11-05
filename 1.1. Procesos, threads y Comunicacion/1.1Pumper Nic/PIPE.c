@@ -148,7 +148,7 @@ void recibirPedido(){
 
     while(1){
         read(pipe_cola[0],&respuesta,sizeof(int));
-        //prioridad a vip
+        
         if(read(pipe_clienteVIP[0],&Pedido,sizeof(pedido))!=-1){
             printf("Atiendo cliente VIP \n");
              switch (Pedido.tipo) {
@@ -203,18 +203,19 @@ void cliente(int id){
     srand(time(NULL) + getpid());
     int despacho;
     int r = 1;
-    int irse = rand() % 2 + 1;
-
-    if (irse == 1) {
+    int irse=2;
+    
+    while(irse!=1){
+        sleep(1);
+        int irse = rand() % 10 + 1;
+        if (irse == 1) {
         printf("Cliente %i llega y se va porque hay mucha cola\n", id);
         return;
-    }
-    else{
-    while(1){
+        }
         int vip= rand()%2;
         int p= rand()%3;
-        pedido ped = {vip,p};  // Cliente VIP (VIP=1), tipo aleatorio (0, 1 o 2)
-        printf("Llega cliente, %i, id: %i y pide: %i.\n",vip,id,ped.tipo);
+        pedido ped= {vip,p};  
+        printf("Llega cliente %i, id: %i y pide: %i.\n",vip,id,ped.tipo);
         if(ped.es_vip==0)
             write(pipe_clienteCOMUN[1],&ped,sizeof(ped));
         else
@@ -227,14 +228,14 @@ void cliente(int id){
             read(pipe_entrega_vegano[0],&despacho,sizeof(int));
         else
             read(pipe_entrega_papas[0],&despacho,sizeof(int));
-        printf("Se va cliente %i, id: %i.\n",vip,id);
+        printf("Cliente %i, id: %i recibio su pedido Y SE VA.\n",vip,id);
     }
-}
+
     exit(0);
 }
 
 int main(int argc, char **argv){
-    //crear pipes
+
     if(pipe(pipe_clienteCOMUN)==-1) return 1;
     if(pipe(pipe_entrega_hamburguesa)==-1) return 1;
     if(pipe(pipe_entrega_papas)==-1) return 1;

@@ -21,10 +21,9 @@ typedef struct {
     int tipo_pedido;       // 0 = Hamburguesa, 1 = MenuVegano, 2 = Papas fritas
     int id_client;  // Identificador único para cada cliente
 } mensaje;
-
+  int queueID;
+int msgSize = sizeof(mensaje) - sizeof(long);
 void EmpleadoHambuguesa() {
-    int queueID = msgget(KEY, IPC_CREAT | 0666);
-    int msgSize = sizeof(mensaje) - sizeof(long);
     mensaje pedido;
     while (1) {
         msgrcv(queueID, &pedido,msgSize, TIPO_HAMBURGUESA, 0);
@@ -36,8 +35,7 @@ void EmpleadoHambuguesa() {
 }
 
 void EmpleadoVegano() {
-    int queueID = msgget(KEY, IPC_CREAT | 0666);
-    int msgSize = sizeof(mensaje) - sizeof(long);
+
     mensaje pedido;
     while (1) {
         msgrcv(queueID, &pedido,msgSize,TIPO_VEGANO, 0);
@@ -49,8 +47,7 @@ void EmpleadoVegano() {
 }
 
 void EmpleadoPapa() {
-    int queueID = msgget(KEY, IPC_CREAT | 0666);
-    int msgSize = sizeof(mensaje) - sizeof(long);
+
     mensaje pedido;
     while (1) {
         msgrcv(queueID, &pedido, msgSize, TIPO_PAPAS, 0);
@@ -62,8 +59,7 @@ void EmpleadoPapa() {
 }
 
 void recibirPedido() {
-    int queueID = msgget(KEY, 0666);
-    int msgSize = sizeof(mensaje) - sizeof(long);
+
     mensaje pedido;
 
     while (1) {
@@ -76,13 +72,11 @@ void recibirPedido() {
 }
 
 void cliente(int id) {
-    int queueID = msgget(KEY, 0666);
-     int msgSize = sizeof(mensaje) - sizeof(long);
-    srand(getpid());
-    mensaje pedido;
 
-    while (rand() % 10 != 9) {
-        sleep(rand() % 10);
+     srand(getpid());
+     mensaje pedido;
+    while(1){
+        sleep(rand()%10);
         pedido.es_vip = rand() % 2;
         pedido.tipo_pedido = rand() % 3;
         pedido.id_client = id;
@@ -92,8 +86,9 @@ void cliente(int id) {
         msgsnd(queueID, &pedido,msgSize, 0);
         
         // Wait for order to be ready, matching by ID
-        printf("Se va cliente %i, id: %i.\n",pedido.es_vip,pedido.id_client);
+
         msgrcv(queueID, &pedido, msgSize, id, 0);
+        printf("Se va cliente %i, id: %i.\n",pedido.es_vip,pedido.id_client);
       
     }
     printf("Un cliente se va porque hay mucha fila.\n");
@@ -102,7 +97,7 @@ void cliente(int id) {
 
 int main(int argc, char **argv) {
     // Destroy any existing message queue and create a new one
-    int queueID = msgget(KEY, IPC_CREAT | 0666);
+    queueID = msgget(KEY, IPC_CREAT | 0666);
     msgctl(queueID, IPC_RMID, NULL);
     queueID = msgget(KEY, IPC_CREAT | 0666);
     
@@ -122,16 +117,12 @@ int main(int argc, char **argv) {
     for (int i = 0; i < CANT_CLIENTES; i++) {
         if (fork() == 0)
             cliente(i+1);
-
     }
 
     // Wait for all clients
-    for (int i = 0; i < CANT_CLIENTES; i++)
+    for (int i = 0; i < CANT_CLIENTES+5; i++){
         wait(NULL);
-
-    // Wait for all employees
-    for (int i = 0; i < 5; i++)
-        wait(NULL);
+}
 
     // Destroy message queue
     msgctl(queueID, IPC_RMID, NULL);
