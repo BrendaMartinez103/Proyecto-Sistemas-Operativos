@@ -18,7 +18,7 @@
 typedef struct {
     long tipo;
     int es_vip;         // 0 = no VIP, 1 = VIP
-    int tipo_pedido;       // 0 = Hamburguesa, 1 = MenuVegano, 2 = Papas fritas
+    long mtype;       // 0 = Hamburguesa, 1 = MenuVegano, 2 = Papas fritas
     int id_client;  // Identificador único para cada cliente
 } mensaje;
   int queueID;
@@ -26,8 +26,8 @@ int msgSize = sizeof(mensaje) - sizeof(long);
 void EmpleadoHambuguesa() {
     mensaje pedido;
     while (1) {
-        msgrcv(queueID, &pedido,msgSize, TIPO_HAMBURGUESA, 0);
-        printf("Cocinando hamburguesa\n");
+        msgrcv(queueID, &pedido, msgSize, TIPO_HAMBURGUESA, 0);
+        printf("Cocinando hamburguesa (0) para cliente con ID: %i\n",pedido.id_client-100);
         pedido.tipo = pedido.id_client;
         printf("Hamburguesa lista para entregar.\n");
         msgsnd(queueID, &pedido, msgSize, 0);
@@ -38,8 +38,8 @@ void EmpleadoVegano() {
 
     mensaje pedido;
     while (1) {
-        msgrcv(queueID, &pedido,msgSize,TIPO_VEGANO, 0);
-        printf("Cocinando menu vegano\n");
+        msgrcv(queueID, &pedido, msgSize,TIPO_VEGANO, 0);
+        printf("Cocinando menu vegano (1) para cliente con ID: %i\n",pedido.id_client-100);
         pedido.tipo = pedido.id_client;
         printf("Menu vegano listo para entrega.\n");
         msgsnd(queueID, &pedido, msgSize, 0);
@@ -51,7 +51,7 @@ void EmpleadoPapa() {
     mensaje pedido;
     while (1) {
         msgrcv(queueID, &pedido, msgSize, TIPO_PAPAS, 0);
-        printf("Cocinando papas fritas\n");
+        printf("Cocinando papas fritas (2) para cliente con ID: %i\n",pedido.id_client-100);
         pedido.tipo = pedido.id_client;
         printf("Papas fritas listas para entregar\n");
         msgsnd(queueID, &pedido,msgSize, 0);
@@ -65,30 +65,45 @@ void recibirPedido() {
     while (1) {
         // Prioridad para VIPs usando tipo negativo
         msgrcv(queueID, &pedido,msgSize, -PRIORIDAD_COMUN, 0); 
-        printf("Atendiendo cliente %i, con ID: %i, tipo pedido: %i.\n", pedido.es_vip,pedido.id_client,  pedido.tipo_pedido);
-        pedido.tipo = pedido.tipo_pedido + TIPO_HAMBURGUESA; // Los tipos van desde HAMBURGUESA hasta PAPAS
+        
+        char* tipoCliente;
+        if(pedido.es_vip == 1)
+            tipoCliente = "VIP";
+        else
+            tipoCliente = "Normal";
+            
+        printf("Atendiendo cliente %s, con ID: %i, tipo pedido: %ld.\n", tipoCliente,pedido.id_client-100,  pedido.mtype);
+        
+        pedido.tipo = pedido.mtype + 3; // Los tipos van desde HAMBURGUESA hasta PAPAS
         msgsnd(queueID, &pedido,msgSize, 0);
     }
 }
 
 void cliente(int id) {
 
-     srand(getpid());
-     mensaje pedido;
+    srand(getpid());
+    mensaje pedido;
     while(1){
         sleep(rand()%10);
         pedido.es_vip = rand() % 2;
-        pedido.tipo_pedido = rand() % 3;
-        pedido.id_client = id;
+        char* tipoCliente;
+        if(pedido.es_vip == 1)
+            tipoCliente = "VIP";
+        else
+            tipoCliente = "Normal";
+        
+        pedido.mtype = rand() % 3;
+        pedido.id_client = id+100;
         pedido.tipo = pedido.es_vip ? PRIORIDAD_VIP : PRIORIDAD_COMUN;  // VIPs get lower type value
-        printf("Llega cliente, %i, id: %i y pide: %i.\n",pedido.es_vip,id,pedido.tipo_pedido);
+        printf("Llega cliente, %s, id: %i y pide: %ld.\n",tipoCliente,id,pedido.mtype);
 
         msgsnd(queueID, &pedido,msgSize, 0);
         
         // Wait for order to be ready, matching by ID
 
-        msgrcv(queueID, &pedido, msgSize, id, 0);
-        printf("Se va cliente %i, id: %i.\n",pedido.es_vip,pedido.id_client);
+        msgrcv(queueID, &pedido, msgSize, id+100, 0);
+        
+        printf("Se va cliente %s, id: %i.\n",tipoCliente,pedido.id_client-100);
       
     }
     printf("Un cliente se va porque hay mucha fila.\n");
@@ -96,7 +111,7 @@ void cliente(int id) {
 }
 
 int main(int argc, char **argv) {
-    // Destroy any existing message queue and create a new one
+    // Eliminamos la cola de mensajes si ya existe y la volvemos a crear
     queueID = msgget(KEY, IPC_CREAT | 0666);
     msgctl(queueID, IPC_RMID, NULL);
     queueID = msgget(KEY, IPC_CREAT | 0666);
