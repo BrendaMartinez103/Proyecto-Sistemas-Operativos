@@ -1,284 +1,289 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <time.h>
-#include <wait.h>
+#include <signal.h>
 
-#define CANT_CLIENTES 20
+#define CLIENTES_COMUNES 10
+#define CLIENTES_VIP 3
 
-typedef struct{
-    int VIP;   //0 = no VIP, 1 = VIP
-    int tipo; //0 = Hamburguesa, 1 = MenuVegano, 2 = Papas fritas
-} pedido;
+typedef struct {
+    int esVIP;     // 0 = no VIP, 1 = VIP
+    int tipoPedido; // 0 = Hamburguesa, 1 = MenuVegano, 2 = Papas fritas
+} Pedido;
 
-int buffer;
+// Pipes para la comunicación
+int pipePedidoHamburguesa[2];
+int pipePedidoPapas[2];
+int pipePedidoVegano[2];
+int pipeClienteComun[2];
+int pipeClienteVIP[2];
+int pipeRetiroHamburguesa[2];
+int pipeRetiroPapas[2];
+int pipeRetiroVegano[2];
 
-//Declaraciones de pipes
-int pipe_entrega_hamburguesa[2];
-int pipe_entrega_vegano[2];
-int pipe_entrega_papas[2];
+int cocineroHamburguesas() {
+    close(pipePedidoPapas[0]);
+    close(pipePedidoPapas[1]);
+    close(pipePedidoVegano[0]);
+    close(pipePedidoVegano[1]);
+    close(pipeClienteComun[0]);
+    close(pipeClienteComun[1]);
+    close(pipeClienteVIP[0]);
+    close(pipeClienteVIP[1]);
+    close(pipeRetiroPapas[0]);
+    close(pipeRetiroPapas[1]);
+    close(pipeRetiroVegano[0]);
+    close(pipeRetiroVegano[1]);
 
-int pipe_orden_hamburguesa[2];
-int pipe_orden_vegano[2];
-int pipe_orden_papas[2];
+    close(pipePedidoHamburguesa[1]);
+    close(pipeRetiroHamburguesa[0]);
 
-int pipe_clienteVIP[2];
-int pipe_clienteCOMUN[2];
-int pipe_cola[2];
-
-void EmpleadoHambuguesa(){
-    //cerrar pipes
-    close(pipe_entrega_hamburguesa[0]);
-    close(pipe_entrega_vegano[0]);
-    close(pipe_entrega_papas[0]);
-    close(pipe_entrega_vegano[1]);
-    close(pipe_entrega_papas[1]);
-    close(pipe_orden_hamburguesa[1]);
-    close(pipe_orden_vegano[1]);
-    close(pipe_orden_papas[1]);
-    close(pipe_orden_vegano[0]);
-    close(pipe_orden_papas[0]);
-
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_cola[0]);
-    close(pipe_cola[1]);
-    
-    while(1){
-      
-                read(pipe_orden_hamburguesa[0],&buffer,sizeof(buffer));
-                printf("Preparando hamburguesa\n");
-                write(pipe_entrega_hamburguesa[1],&buffer,sizeof(buffer));
-                printf("Hamburguesa lista\n");
+    while (1) {
+        Pedido pedido;
+        int respuesta;
+        read(pipePedidoHamburguesa[0], &pedido, sizeof(pedido));
+        printf("Haciendo Hamburguesa--> pedido tipo %d\n", pedido.tipoPedido);
+        printf("Hamburguesa Lista\n");
+        respuesta = 0;
+        write(pipeRetiroHamburguesa[1], &respuesta, sizeof(respuesta));
     }
-        
-    close(pipe_orden_hamburguesa[0]);
-    close(pipe_entrega_hamburguesa[1]);
- 
-
     exit(0);
 }
-void EmpleadoVegano(){
-    //cerrar pipes
-    close(pipe_entrega_hamburguesa[0]);
-    close(pipe_entrega_hamburguesa[1]);
-    close(pipe_entrega_vegano[0]);
-    close(pipe_entrega_papas[0]);
-    close(pipe_entrega_papas[1]);
-    
- 
-    close(pipe_orden_hamburguesa[1]);
-    close(pipe_orden_vegano[1]);
-    close(pipe_orden_papas[1]);
-    close(pipe_orden_hamburguesa[0]);
-    close(pipe_orden_papas[0]);
 
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_cola[0]);
-    close(pipe_cola[1]);
-    
-    while(1){
-        
-            read(pipe_orden_vegano[0],&buffer,sizeof(buffer));
-            printf("Preparando menu vegano\n");
-            write(pipe_entrega_vegano[1],&buffer,sizeof(int));
-            printf("Menu vegano listo.\n");
-         
+
+
+void cocineroVegano() {
+    close(pipePedidoHamburguesa[0]);
+    close(pipePedidoHamburguesa[1]);
+    close(pipePedidoPapas[0]);
+    close(pipePedidoPapas[1]);
+    close(pipeClienteComun[0]);
+    close(pipeClienteComun[1]);
+    close(pipeClienteVIP[0]);
+    close(pipeClienteVIP[1]);
+    close(pipeRetiroHamburguesa[0]);
+    close(pipeRetiroHamburguesa[1]);
+    close(pipeRetiroPapas[0]);
+    close(pipeRetiroPapas[1]);
+
+    close(pipePedidoVegano[1]);
+    close(pipeRetiroVegano[0]);
+
+    while (1) {
+        Pedido pedido;
+        int respuesta=1;
+        read(pipePedidoVegano[0], &pedido, sizeof(pedido));
+        printf("Haciendo menu vegano--> pedido tipo  %d\n", pedido.tipoPedido);
+        printf("Menu vegano listo\n");
+        write(pipeRetiroVegano[1], &respuesta, sizeof(respuesta));
     }
-    close(pipe_orden_vegano[0]);
-    close(pipe_entrega_vegano[1]);       
     exit(0);
 }
-void EmpleadoPapas(){
-    //cerrar pipes
-    close(pipe_entrega_hamburguesa[0]);
-     close(pipe_entrega_hamburguesa[1]);
-    close(pipe_entrega_vegano[0]);
-     close(pipe_entrega_vegano[1]);
-    close(pipe_entrega_papas[0]);
-   
-    close(pipe_orden_hamburguesa[1]);
-    close(pipe_orden_vegano[1]);
-    close(pipe_orden_papas[1]);
-    close(pipe_orden_hamburguesa[0]);
-    close(pipe_orden_vegano[0]);
+void cocineroPapas(int id) {
+    close(pipePedidoHamburguesa[0]);
+    close(pipePedidoHamburguesa[1]);
+    close(pipePedidoVegano[0]);
+    close(pipePedidoVegano[1]);
+    close(pipeClienteComun[0]);
+    close(pipeClienteComun[1]);
+    close(pipeClienteVIP[0]);
+    close(pipeClienteVIP[1]);
+    close(pipeRetiroHamburguesa[0]);
+    close(pipeRetiroHamburguesa[1]);
+    close(pipeRetiroVegano[0]);
+    close(pipeRetiroVegano[1]);
 
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_cola[0]);
-    close(pipe_cola[1]);
-    
-    while(1){
-            read(pipe_orden_papas[0],&buffer,sizeof(buffer));
-            printf("Preparando papas fritas\n");
-            write(pipe_entrega_papas[1],&buffer,sizeof(buffer));
-            printf("Papas fritas listas.\n");
-         
+    close(pipePedidoPapas[1]);
+    close(pipeRetiroPapas[0]);
+
+    while (1) {
+        Pedido pedido;
+        int respuesta=2;
+        read(pipePedidoPapas[0], &pedido, sizeof(pedido));
+        printf("Haciendo papas,Empleado %d --> pedido tipo %d\n", id, pedido.tipoPedido);
+        printf("Papas Listas, Empleado %d\n", id);
+        write(pipeRetiroPapas[1], &respuesta, sizeof(respuesta));
     }
-     close(pipe_orden_papas[0]);
-    close(pipe_entrega_papas[1]);       
-         
-    }
+    exit(0);
+}
+void recibirPedido() {
+    close(pipeRetiroHamburguesa[0]);
+    close(pipeRetiroHamburguesa[1]);
+    close(pipeRetiroPapas[0]);
+    close(pipeRetiroPapas[1]);
+    close(pipeRetiroVegano[0]);
+    close(pipeRetiroVegano[1]);
+
+    close(pipeClienteComun[1]);
+    close(pipeClienteVIP[1]);
+
+    close(pipePedidoHamburguesa[0]);
+    close(pipePedidoPapas[0]);
+    close(pipePedidoVegano[0]);
+
+    while (1) {
+        Pedido pedido;
+
+        int flags = fcntl(pipeClienteVIP[0], F_GETFL, 0);
+        fcntl(pipeClienteVIP[0], F_SETFL, flags | O_NONBLOCK);
         
-
-void recibirPedido(){
-    //cerrar pipes
-    close(pipe_clienteVIP[1]);
-    close(pipe_clienteCOMUN[1]);
-    
-    close(pipe_entrega_hamburguesa[0]);
-    close(pipe_entrega_hamburguesa[1]);
-    close(pipe_entrega_vegano[0]);
-    close(pipe_entrega_vegano[1]);
-    close(pipe_entrega_papas[0]);
-    close(pipe_entrega_papas[1]);
-    
-    close(pipe_orden_hamburguesa[0]);
-    close(pipe_orden_papas[0]);
-    close(pipe_orden_vegano[0]);
-    
-    close(pipe_cola[1]);
-    
-    fcntl(pipe_clienteCOMUN[0], F_SETFL,O_NONBLOCK);
-    fcntl(pipe_clienteVIP[0], F_SETFL,O_NONBLOCK);
-    
-    pedido p;
-    while(1){
-        read(pipe_cola[0],&buffer,sizeof(buffer));
-        //atiende a los vip
-        if(read(pipe_clienteVIP[0],&buffer,sizeof(buffer))!=-1){
-            printf("Atendiendo a un cliente VIP \n");
-            if (p.tipo == 0)
-                write(pipe_orden_hamburguesa[1],&buffer,sizeof(buffer));
-            else 
-            if(p.tipo == 1)
-                write(pipe_orden_vegano[1],&buffer,sizeof(buffer));
-            else
-                write(pipe_orden_papas[1],&buffer,sizeof(buffer));
+        if (read(pipeClienteVIP[0], &pedido, sizeof(pedido)) > 0) {
+            printf("Se recibió un pedido tipo %d de un cliente VIP\n", pedido.tipoPedido);
+        } else {
+            read(pipeClienteComun[0], &pedido, sizeof(pedido));
+            printf("Se recibió un pedido tipo %d de un cliente común\n", pedido.tipoPedido);
         }
-        else {
-            if(read(pipe_clienteCOMUN[0],&buffer,sizeof(buffer))!=-1){
-                printf("Atendiendo a cliente comun\n");
-                if (p.tipo == 0)
-                    write(pipe_orden_hamburguesa[1],&buffer,sizeof(buffer));
-                else 
-                   if(p.tipo == 1)
-                    write(pipe_orden_vegano[1],&buffer,sizeof(buffer));
-                else
-                    write(pipe_orden_papas[1],&buffer,sizeof(buffer));
-            }
+
+        switch (pedido.tipoPedido) {
+            case 0:
+                printf("se despacha pedido para cocinar hamburguesas\n");
+                write(pipePedidoHamburguesa[1], &pedido, sizeof(pedido));
+                break;
+            case 1:
+                printf("se despacha pedido para que uno de los empleados cocine papas\n");
+                write(pipePedidoPapas[1], &pedido, sizeof(pedido));
+                break;
+            case 2:
+                printf("se despacha pedido para cocinar menu vegano\n");
+                write(pipePedidoVegano[1], &pedido, sizeof(pedido));
+                break;
         }
     }
-
-    close(pipe_cola[0]);
-    close(pipe_clienteCOMUN[0]);
-    close(pipe_clienteVIP[0]);
-    close(pipe_orden_hamburguesa[1]);
-    close(pipe_orden_vegano[1]);
-    close(pipe_orden_papas[1]);
-
     exit(0);
 }
 
-void cliente(){
-    //cerrar pipes
-    close(pipe_clienteVIP[0]);
-    close(pipe_clienteCOMUN[0]);
-    close(pipe_cola[0]);
-    close(pipe_entrega_hamburguesa[1]);
-    close(pipe_entrega_vegano[1]);
-    close(pipe_entrega_papas[1]);
-    close(pipe_orden_hamburguesa[0]);
-    close(pipe_orden_papas[0]);
-    close(pipe_orden_vegano[0]);
-    close(pipe_orden_hamburguesa[1]);
-    close(pipe_orden_papas[1]);
-    close(pipe_orden_vegano[1]);
+void clienteComun(int id) {
+    close(pipePedidoHamburguesa[0]);
+    close(pipePedidoHamburguesa[1]);
+    close(pipePedidoPapas[0]);
+    close(pipePedidoPapas[1]);
+    close(pipePedidoVegano[0]);
+    close(pipePedidoVegano[1]);
+    close(pipeClienteVIP[0]);
+    close(pipeClienteVIP[1]);
 
-    srand(getpid());
+    close(pipeClienteComun[0]);
 
-    int despacho;
- 
-    pedido cliente;
+    close(pipeRetiroHamburguesa[1]);
+    close(pipeRetiroPapas[1]);
+    close(pipeRetiroVegano[1]);
 
-    //La condicion del while simula que el cliente se vaya si hay mucha fila
-    while(rand()%10!=9){
-        sleep(rand()%10);
-        cliente.VIP = rand()%2;
-        cliente.tipo = rand()%3;
-        printf("Llega un cliente vip VIP: %i, y su pedido es: %i.\n",cliente.VIP,cliente.tipo);
-        if(cliente.VIP==0)
-            write(pipe_clienteCOMUN[1],&cliente,sizeof(pedido));
-        else
-            write(pipe_clienteVIP[1],&cliente,sizeof(pedido));
+    srand(time(NULL) + getpid());
+    printf("Cliente comun %d: llega\n", id);
+
+    int irse = rand() % 10 + 1;
+
+    if (irse == 1) {
+        printf("Cliente comun %d se va porque hay mucha cola\n", id);
+        return;
+    } else {
+        
+        Pedido pedido = {0, rand() % 3};
+        printf("Cliente comun  %d: hace pedido tipo %d\n", id, pedido.tipoPedido);
+        write(pipeClienteComun[1], &pedido, sizeof(pedido));
+
+        int respuesta;
+        switch (pedido.tipoPedido) {
+            case 0:
+                read(pipeRetiroHamburguesa[0], &respuesta, sizeof(respuesta));
+                printf("Cliente comun %d: recibió su pedido de tipo %d\n", id, respuesta);
+                break;
+            case 1:
+                read(pipeRetiroVegano[0], &respuesta, sizeof(respuesta));
+                printf("Cliente %d: recibió su pedido de tipo %d\n", id, respuesta);
+                break;
+            case 2:
+                read(pipeRetiroPapas[0], &respuesta, sizeof(respuesta));
+                printf("Cliente %d: recibió su pedido de tipo %d\n", id, respuesta);
+                break;
             
-        write(pipe_cola[1],&buffer,sizeof(buffer));
-        
-        if(cliente.tipo == 0)
-            read(pipe_entrega_hamburguesa[0],&buffer,sizeof(buffer));
-        else if(cliente.tipo == 1)
-            read(pipe_entrega_vegano[0],&buffer,sizeof(buffer));
-        else
-            read(pipe_entrega_papas[0],&buffer,sizeof(buffer));
-        printf("Se va cliente, VIP: %i, con su pedido : %i.\n",cliente.VIP,cliente.tipo);
+        }
+        printf("Cliente %d se va con su pedido.\n", id);
     }
-    printf("Un cliente se va porque hay mucha fila\n");
-
-    close(pipe_clienteVIP[1]);
-    close(pipe_clienteCOMUN[1]);
-    close(pipe_cola[1]);
-    close(pipe_entrega_hamburguesa[0]);
-    close(pipe_entrega_vegano[0]);
-    close(pipe_entrega_papas[0]);
-
     exit(0);
 }
 
-int main(int argc, char **argv){
-    //crear pipes
-    if(pipe(pipe_clienteCOMUN)==-1) return 1;
-    if(pipe(pipe_clienteVIP)==-1) return 1;
-    if(pipe(pipe_entrega_hamburguesa)==-1) return 1;
-    if(pipe(pipe_entrega_papas)==-1) return 1;
-    if(pipe(pipe_entrega_vegano)==-1) return 1;
-    if(pipe(pipe_orden_hamburguesa)==-1) return 1;
-    if(pipe(pipe_orden_papas)==-1) return 1;
-    if(pipe(pipe_orden_vegano)==-1) return 1;
-    if(pipe(pipe_cola)==-1) return 1;
-    
-    //crear procesos empleados
-    if(fork()==0)
-	    EmpleadoHambuguesa();
-	else if(fork()==0)
-	    EmpleadoVegano();
-	else if(fork()==0)
-	    EmpleadoPapas();
-    else if(fork()==0)
-	    EmpleadoPapas();
-	else if(fork()==0)
-	    recibirPedido();
-    
-    //crear procesos clientes
-    for(int i = 0; i<CANT_CLIENTES; i++){
-	if(fork()==0)
-	    cliente();
+void clienteVIP(int id) {
+    close(pipePedidoHamburguesa[0]);
+    close(pipePedidoHamburguesa[1]);
+    close(pipePedidoPapas[0]);
+    close(pipePedidoPapas[1]);
+    close(pipePedidoVegano[0]);
+    close(pipePedidoVegano[1]);
+    close(pipeClienteComun[0]);
+    close(pipeClienteComun[1]);
+
+    close(pipeClienteVIP[0]);
+
+    close(pipeRetiroHamburguesa[1]);
+    close(pipeRetiroPapas[1]);
+    close(pipeRetiroVegano[1]);
+
+    srand(time(NULL) + getpid());
+    printf("Cliente VIP %d: llega\n", id);
+
+    int irse = rand() % 10 + 1;
+
+    if (irse == 1) {
+        printf("Cliente VIP %d se va porque hay mucha cola\n", id);
+        return;
+    } else {
+        Pedido pedido = {1, rand() % 3};  // Cliente VIP (VIP=1), tipo aleatorio (0, 1 o 2)
+        printf("Cliente VIP %d: hace pedido tipo %d\n", id, pedido.tipoPedido);
+        write(pipeClienteVIP[1], &pedido, sizeof(pedido));
+
+        int respuesta;
+        switch (pedido.tipoPedido) {
+            case 0:
+                read(pipeRetiroHamburguesa[0], &respuesta, sizeof(respuesta));
+                printf("Cliente VIP %d: recibió su pedido de tipo  %d\n", id, respuesta);
+                break;
+            case 1:
+                read(pipeRetiroVegano[0], &respuesta, sizeof(respuesta));
+                printf("Cliente VIP %d: recibió su pedido de tipo  %d\n", id, respuesta);
+                break;
+             case 2:
+                read(pipeRetiroPapas[0], &respuesta, sizeof(respuesta));
+                printf("Cliente VIP %d: recibió su pedido de tipo %d\n", id, respuesta);
+                break;
+        }
+        printf("Cliente VIP %d se va con su pedido\n", id);
+    }
+    exit(0);
+}
+
+int main() {
+    pipe(pipePedidoHamburguesa);
+    pipe(pipePedidoPapas);
+    pipe(pipePedidoVegano);
+    pipe(pipeClienteComun);
+    pipe(pipeClienteVIP);
+    pipe(pipeRetiroHamburguesa);
+    pipe(pipeRetiroPapas);
+    pipe(pipeRetiroVegano);
+
+    if (fork() == 0) cocineroHamburguesas();
+    if (fork() == 0) cocineroPapas(0);
+    if (fork() == 0) cocineroPapas(1);
+    if (fork() == 0) cocineroVegano();
+    if (fork() == 0) recibirPedido();
+
+    for (int i = 0; i < CLIENTES_COMUNES; i++) {
+        if (fork() == 0) clienteComun(i);
     }
 
-    //espero que se vayan los clientes
-    for(int i = 0; i<CANT_CLIENTES; i++)
-	    wait(NULL);
-    
-    //termino los procesos empleados
-    for(int i = 0; i<5; i++)
-	    wait(NULL);//Falta matar a todos los hijos
-    
+    for (int i = 0; i < CLIENTES_VIP; i++) {
+        if (fork() == 0) clienteVIP(i);
+    }
+
+    for (int i = 0; i < (CLIENTES_COMUNES + CLIENTES_VIP + 5); i++) {
+        wait(NULL);
+    }
+
+    printf("Termina la simulación\n");
     return 0;
 }
