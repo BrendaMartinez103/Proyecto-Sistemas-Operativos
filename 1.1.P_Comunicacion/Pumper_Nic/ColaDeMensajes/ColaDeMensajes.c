@@ -112,13 +112,13 @@ void cliente(int id) {
 	pedido.tipo = mtypeAux;
     int irse = rand() % 10 + 1;
         if (irse == 1) {
-        printf("Cliente %d se va de la cola-------------------------------------------------\n",id);
+        printf("Cliente %d se va de la cola \n",id);
         exit(1);
     }
     int k=1;
-	if (msgsnd(queueID, &pedido,msgSize, IPC_NOWAIT ) == -1) {
+	while (msgsnd(queueID, &pedido,msgSize, IPC_NOWAIT ) == -1) {
 	    if (errno == EAGAIN) {  // Cola llena
-                printf("Cola llena, reintentando...\n");
+                printf("Cliente %d se va de la cola \n",id);
                 sleep(1);  // Esperar 1 segundo antes de reintentar
                 exit(0);
 	    } else {
@@ -126,9 +126,6 @@ void cliente(int id) {
                 exit(0);
         }
 	}
-    else {
-    
-    }
 
 	msgrcv(queueID, &pedido, msgSize, id+100, 0);
 	pedido.tipo = 1000000;
