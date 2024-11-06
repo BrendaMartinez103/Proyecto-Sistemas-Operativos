@@ -19,9 +19,9 @@
 
 typedef struct {
 	long tipo;
-	int es_vip;         // 0 = no VIP, 1 = VIP
+	int es_vip;         // 0 = normal , 1 = VIP
 	long mtype;       // 0 = Hamburguesa, 1 = MenuVegano, 2 = Papas fritas
-	int id_client;  // Identificador C:nico para cada cliente
+	int id_client;  // Identificador Unico para cada cliente
 } mensaje;
 int queueID;
 int msgSize = sizeof(mensaje) - sizeof(long);
@@ -65,7 +65,6 @@ void recibirPedido() {
 		// Prioridad para VIPs usando tipo negativo
 		// Toma el primer mensaje <= a 2, es decir los VIP.
 		msgrcv(queueID, &pedido,msgSize, -PRIORIDAD_COMUN, 0);
-		//printf("mType: %ld tipo: %ld \n",pedido.mtype, pedido.tipo);
 		//Swap para prioridades
 		long mtypeAux = pedido.mtype;
 		long tipoAux = pedido.tipo;
@@ -80,7 +79,7 @@ void recibirPedido() {
 
 		printf("Atendiendo cliente %s, con ID: %i, tipo pedido: %ld.\n", tipoCliente,pedido.id_client-100,  pedido.mtype);
 
-		pedido.tipo = pedido.mtype + 3; // Los tipos van desde HAMBURGUESA hasta PAPAS
+		pedido.tipo = pedido.mtype + 3; 
 		msgsnd(queueID, &pedido,msgSize, 0);
 
 		msgrcv(queueID, &pedido, msgSize, MENULISTO, 0); //1000 corresponde a pedido finalizado y listo para entregar
@@ -131,8 +130,6 @@ void cliente(int id) {
     
     }
 
-	// Wait for order to be ready, matching by ID
-
 	msgrcv(queueID, &pedido, msgSize, id+100, 0);
 	pedido.tipo = 1000000;
 	printf("Se va cliente %s, id: %i.\n",tipoCliente,pedido.id_client-100);
@@ -170,11 +167,6 @@ int main(int argc, char **argv) {
 	}
 
 	printf("Local vacio \n");
-
-	/*
-	for (int i = 0; i < 5; i++){
-	    wait(NULL);
-	}*/
 
 	// Destroy message queue
 	msgctl(queueID, IPC_RMID, NULL);
