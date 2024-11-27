@@ -27,11 +27,11 @@ void *santa() {
         if (sem_trywait(&sem_renos) == -1) { // llegaron los 9 renos
             printf("Santa atiende a los renos\n");
             fflush(stdout);
-
             for (int i = 0; i < CANT_RENOS; i++) {
-                sem_post(&sem_renos); 
-                sem_post(&sem_nueveRenos);
-              
+             sem_post(&sem_nueveRenos);//devuelvo los que viajan 
+            }
+            for (int j = 0; j < CANT_RENOS; j++) {
+                 sem_post(&sem_renos); //habilito los que vuelven
             }
             sleep(1);
             printf("Santa terminó de enganchar a los renos\n");
@@ -48,6 +48,8 @@ void *santa() {
 
             for (int j = 0; j < CANT_ELFO_AYUDA; j++) {
                 sem_post(&sem_tresElfos);
+            }
+            for (int i=0 ; i <CANT_ELFO_AYUDA;i++ ){
                 sem_post(&sem_elfos); 
             }
             sleep(1);
@@ -68,9 +70,8 @@ void *reno(void* p) {
         int id = *(int*)p;
         srand(time(NULL));
         sleep(1);
-       
         pthread_mutex_lock(&mutexRenos);
-        sem_wait(&sem_renos);//Cada vez que un reno llega se decreta el semaforo
+        sem_wait(&sem_renos);//Cada vez que un reno llega se decrementa el semaforo
         
         if (sem_trywait(&sem_renos)==0){ 
             sem_post(&sem_renos); //devuelve el del semtrywait
@@ -97,11 +98,10 @@ void *elfo(void* p) {
             sem_wait(&sem_grupoElfos);
             pthread_mutex_lock(&mutexElfos);
             sem_wait(&sem_elfos);
-           
             if (sem_trywait(&sem_elfos)==0){ 
                 sem_post(&sem_elfos); //devuelve el del semtrywait
-                 printf("Elfo %i tiene problema\n",id);
-                 fflush(stdout);
+                printf("Elfo %i tiene problema\n",id);
+                fflush(stdout);
             }
             else{//si sem_elfos=0 retorna -1 , somos 3 elfos y despierto a santa 
                 printf("Elfo %i tiene problema,Tres elfos piden ayuda a santa\n",id);
@@ -111,7 +111,7 @@ void *elfo(void* p) {
                
             pthread_mutex_unlock(&mutexElfos);
             
-            sem_wait(&sem_tresElfos);//El elfo espera hasta que tres elfos hayan sido ayudados por santa
+            sem_wait(&sem_tresElfos);// espera hasta que tres elfos hayan sido ayudados por santa
             
             pthread_mutex_lock(&mutexElfos);
             sem_wait(&sem_elfos);
@@ -119,14 +119,14 @@ void *elfo(void* p) {
                  printf("Elfo %i recibio la ayuda de santa\n",id);
                  fflush(stdout);
                 sem_post(&sem_elfos); //devuelve el del semtrywait
-               
-                 
             }
             else{
                 printf("Elfo %i recibio la ayuda de santa ULTIMO\n",id);
                 fflush(stdout);
                 for (int i=0;i<CANT_ELFO_AYUDA;i++){
                     sem_post(&sem_elfos);
+                }
+                for (int j=0;j<CANT_ELFO_AYUDA;j++){
                     sem_post(&sem_grupoElfos); 
                 }
             }

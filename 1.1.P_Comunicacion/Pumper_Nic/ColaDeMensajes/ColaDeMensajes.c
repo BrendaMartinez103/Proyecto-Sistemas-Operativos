@@ -12,8 +12,7 @@
 #define TIPO_VEGANO 4
 #define TIPO_PAPAS 5
 
-#define COLA_TURNO 6
-#define MAX_CLIENTES_ACTIVOS 10
+
 #define CANT_CLIENTES 20
 #define PRIMER_CLIENTE 100
 
@@ -78,11 +77,10 @@ void recibirPedido() {
 
 void cliente(int id) {
     srand(getpid());
-    mensaje pedido, control;
-
+    mensaje pedido;
     while (1) {
         sleep(rand() % 5);
-        msgrcv(queueID, &control, msgSize, COLA_TURNO, 0);// control de turno, espera su turno en la cola
+        
         pedido.es_vip = rand() % 2;
         pedido.tipo_pedido = rand() % 3;
         pedido.id_client = id;
@@ -93,16 +91,11 @@ void cliente(int id) {
     	int irse = rand() % 10 + 1;
         if (irse == 1) { 
             printf("Cliente %d se va de la cola.\n", id);
-            msgsnd(queueID, &control, msgSize, 0);  // Liberar turno
-            exit(0);
         }
-
-        msgsnd(queueID, &pedido, msgSize, 0);
+        msgsnd(queueID, &pedido, msgSize, 0);//enviar pedido
         msgrcv(queueID, &pedido, msgSize, id, 0);  // Espera su pedido
         printf("Se va cliente %s, id: %i con su pedido\n",
                (pedido.es_vip ? "VIP" : "Normal"), pedido.id_client);
-
-        msgsnd(queueID, &control, msgSize, 0);  // Liberar turno
     }
 }
 
@@ -111,15 +104,7 @@ int main() {
     queueID = msgget(KEY, IPC_CREAT | 0666);
     msgctl(queueID, IPC_RMID, NULL);
     queueID = msgget(KEY, IPC_CREAT | 0666);
-
-    mensaje control;
-    control.tipo = COLA_TURNO;
-
-    // Inicializar clientes activos para el control
-    for (int i = 0; i < MAX_CLIENTES_ACTIVOS; i++) {
-        msgsnd(queueID, &control, msgSize, 0);
-    }
-
+    
     // Creación de empleados
     if (fork() == 0) {
         EmpleadoHambuguesa();
