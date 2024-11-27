@@ -12,7 +12,7 @@
 #define TIPO_VEGANO 4
 #define TIPO_PAPAS 5
 
-#define COLA_PEDIDOS 6
+#define COLA_TURNO 6
 #define MAX_CLIENTES_ACTIVOS 10
 #define CANT_CLIENTES 20
 #define PRIMER_CLIENTE 100
@@ -82,7 +82,7 @@ void cliente(int id) {
 
     while (1) {
         sleep(rand() % 5);
-        msgrcv(queueID, &control, msgSize, COLA_PEDIDOS, 0);// control de turno, espera su turno en la cola
+        msgrcv(queueID, &control, msgSize, COLA_TURNO, 0);// control de turno, espera su turno en la cola
         pedido.es_vip = rand() % 2;
         pedido.tipo_pedido = rand() % 3;
         pedido.id_client = id;
@@ -113,7 +113,7 @@ int main() {
     queueID = msgget(KEY, IPC_CREAT | 0666);
 
     mensaje control;
-    control.tipo = COLA_PEDIDOS;
+    control.tipo = COLA_TURNO;
 
     // Inicializar clientes activos para el control
     for (int i = 0; i < MAX_CLIENTES_ACTIVOS; i++) {
