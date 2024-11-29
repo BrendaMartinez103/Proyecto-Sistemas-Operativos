@@ -68,7 +68,7 @@ void *reno(void* p) {
  
     while (1) { 
         int id = *(int*)p;
-        srand(time(NULL));
+        srand(getpid());
         sleep(1);
         pthread_mutex_lock(&mutexRenos);
         sem_wait(&sem_renos);//Cada vez que un reno llega se decrementa el semaforo
@@ -91,7 +91,7 @@ void *reno(void* p) {
 void *elfo(void* p) { 
         while (1) { 
             int id = *(int*)p;
-            srand(time(NULL));
+            srand(getpid());
             sleep(1);
             printf("Elfo %i Trabajando....\n",id);
             fflush(stdout);
@@ -140,7 +140,7 @@ void *elfo(void* p) {
 
 int main() { 
     pthread_t threadRenos[CANT_RENOS], threadElfos[CANT_ELFOS], threadSanta;
-    srand(time(NULL));
+    srand(getpid());
     pthread_mutex_init(&mutexRenos, NULL); 
     pthread_mutex_init(&mutexElfos, NULL);
     

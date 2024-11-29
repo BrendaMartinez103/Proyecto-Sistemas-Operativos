@@ -78,24 +78,27 @@ void recibirPedido() {
 void cliente(int id) {
     srand(getpid());
     mensaje pedido;
+  
     while (1) {
         sleep(rand() % 5);
-        
+        int irse = rand() % 10 + 1;
+        if (irse == 1) { 
+             printf("Cliente %d llega y se va de la cola.\n", id);
+        }
+        else{
         pedido.es_vip = rand() % 2;
         pedido.tipo_pedido = rand() % 3;
         pedido.id_client = id;
         pedido.tipo = PRIORIDAD_COMUN - pedido.es_vip;
-
-        printf("Llega cliente %s, id: %i y pide: %i.\n",
-               (pedido.es_vip ? "VIP" : "Normal"), id, pedido.tipo_pedido);
-    	int irse = rand() % 10 + 1;
-        if (irse == 1) { 
-            printf("Cliente %d se va de la cola.\n", id);
+       
+            printf("Llega cliente %s, id: %i y pide: %i.\n",
+                   (pedido.es_vip ? "VIP" : "Normal"), id, pedido.tipo_pedido);
+        	
+            msgsnd(queueID, &pedido, msgSize, 0);//enviar pedido
+            msgrcv(queueID, &pedido, msgSize, id, 0);  // Espera su pedido
+            printf("Se va cliente %s, id: %i con su pedido\n",
+                   (pedido.es_vip ? "VIP" : "Normal"), pedido.id_client);
         }
-        msgsnd(queueID, &pedido, msgSize, 0);//enviar pedido
-        msgrcv(queueID, &pedido, msgSize, id, 0);  // Espera su pedido
-        printf("Se va cliente %s, id: %i con su pedido\n",
-               (pedido.es_vip ? "VIP" : "Normal"), pedido.id_client);
     }
 }
 
