@@ -12,7 +12,6 @@
 #define TIPO_VEGANO 4
 #define TIPO_PAPAS 5
 
-
 #define CANT_CLIENTES 20
 #define PRIMER_CLIENTE 100
 
@@ -36,6 +35,7 @@ void EmpleadoHambuguesa() {
         pedido.tipo = pedido.id_client;
         msgsnd(queueID, &pedido, msgSize, 0);
     }
+     exit(0);
 }
 
 void EmpleadoVegano() {
@@ -48,6 +48,7 @@ void EmpleadoVegano() {
         pedido.tipo = pedido.id_client;
         msgsnd(queueID, &pedido, msgSize, 0);
     }
+     exit(0);
 }
 
 void EmpleadoPapa() {
@@ -60,6 +61,7 @@ void EmpleadoPapa() {
         pedido.tipo = pedido.id_client;
         msgsnd(queueID, &pedido, msgSize, 0);
     }
+     exit(0);
 }
 
 void recibirPedido() {
@@ -73,6 +75,7 @@ void recibirPedido() {
         pedido.tipo = pedido.tipo_pedido + TIPO_HAMBURGUESA;
         msgsnd(queueID, &pedido, msgSize, 0);
     }
+     exit(0);
 }
 
 void cliente(int id) {
@@ -109,31 +112,29 @@ int main() {
     queueID = msgget(KEY, IPC_CREAT | 0666);
     
     // Creación de empleados
-    if (fork() == 0) {
+    if (fork() == 0) 
         EmpleadoHambuguesa();
-        exit(0);
-    }
-    if (fork() == 0) {
+       
+    else
+    if (fork() == 0)
         EmpleadoVegano();
-        exit(0);
-    }
-    if (fork() == 0) {
+    else
+    if (fork() == 0)
         EmpleadoPapa();
-        exit(0);
-    }
-    if (fork() == 0) {
+       
+    else
+    if (fork() == 0) 
         EmpleadoPapa();
-        exit(0);
-    }
-    if (fork() == 0) {
+    else
+    if (fork() == 0) 
         recibirPedido();
-        exit(0);
-    }
+       
 
     // Creación de clientes
     for (int i = 0; i < CANT_CLIENTES; i++) {
         if (fork() == 0) {
             cliente(PRIMER_CLIENTE + i);
+            exit(0);
         }
     }
 

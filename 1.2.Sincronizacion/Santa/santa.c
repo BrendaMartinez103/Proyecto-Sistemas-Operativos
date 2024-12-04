@@ -21,8 +21,6 @@ pthread_mutex_t mutexRenos, mutexElfos;
 void *santa() { 
     while (1) { 
         sem_wait(&sem_santa);
-        printf("Santa DESPIERTA \n");
-        fflush(stdout);
         pthread_mutex_lock(&mutexRenos);
         if (sem_trywait(&sem_renos) == -1) { // llegaron los 9 renos
             printf("Santa atiende a los renos\n");
@@ -59,24 +57,19 @@ void *santa() {
         else
          sem_post(&sem_elfos); //si no son 3 elfos se devuelve el del trywait
         pthread_mutex_unlock(&mutexElfos);
-
-        printf("Santa se duerme\n");
     } 
-    pthread_exit(NULL);
 }
 void *reno(void* p) { 
- 
+  int id = *(int*)p;
     while (1) { 
-        int id = *(int*)p;
-        srand(getpid());
-        sleep(1);
+        sleep(rand() % 3 + 1);
         pthread_mutex_lock(&mutexRenos);
         sem_wait(&sem_renos);//Cada vez que un reno llega se decrementa el semaforo
-        
+       
         if (sem_trywait(&sem_renos)==0){ 
             sem_post(&sem_renos); //devuelve el del semtrywait
-            printf("Llego reno %i \n",id);
-            fflush(stdout);
+             printf("Llego reno %i \n",id);
+             fflush(stdout);
         }
         else{//si semrenos=0 retorna -1 , soy el ultimo reno y despierto a santa 
             printf("Llego reno %i y es el ultimo de los 9.\n",id);
@@ -85,14 +78,12 @@ void *reno(void* p) {
         pthread_mutex_unlock(&mutexRenos);
         sem_wait(&sem_nueveRenos);//espera hasta que los 9 renos hayan sido enganchados al trineo
     }
-    pthread_exit(NULL);
 } 
 
 void *elfo(void* p) { 
+    int id = *(int*)p;
         while (1) { 
-            int id = *(int*)p;
-            srand(getpid());
-            sleep(1);
+            sleep(rand() % 5 + 1);
             printf("Elfo %i Trabajando....\n",id);
             fflush(stdout);
             sem_wait(&sem_grupoElfos);
@@ -133,17 +124,15 @@ void *elfo(void* p) {
             pthread_mutex_unlock(&mutexElfos);
                
         }
-   	pthread_exit(NULL);
 }
 
 
 
 int main() { 
     pthread_t threadRenos[CANT_RENOS], threadElfos[CANT_ELFOS], threadSanta;
-    srand(getpid());
     pthread_mutex_init(&mutexRenos, NULL); 
     pthread_mutex_init(&mutexElfos, NULL);
-    
+   
     sem_init(&sem_santa, 0, 0); 
     sem_init(&sem_nueveRenos, 0, 0); 
     sem_init(&sem_tresElfos, 0, 0); 
